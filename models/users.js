@@ -28,7 +28,6 @@ module.exports = (sequelize, DataTypes) => {
     }
 
     authenticate(plainText) {
-      console.log('authenticate', plainText, this.encryptPassword(plainText), this.hashed_password);
       return this.encryptPassword(plainText) === this.hashed_password;
     }
   }
@@ -56,7 +55,7 @@ module.exports = (sequelize, DataTypes) => {
     salt: {
       field: 'salt',
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     createdAt: {
       field: 'created_at',
