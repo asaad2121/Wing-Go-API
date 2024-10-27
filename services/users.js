@@ -8,7 +8,7 @@ const loginUsers = async(req, res) => {
     if (!user.authenticate(password)) return res.status(404).json({ success: false, message: 'Email and password do not match' });
     
     const token = jwt.sign({_id:user._id},process.env.JWT_SECRET);
-    res.cookie("jwt",token,{expire:new Date()+9999});
+    res.cookie("jwt", token, { expire: new Date(Date.now() + 1800000) });
     res.status(200).json({ success: true, message: 'Login successful', data: user });
 };
 
