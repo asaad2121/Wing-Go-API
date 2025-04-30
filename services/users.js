@@ -7,8 +7,14 @@ const loginUsers = async(req, res) => {
     if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     if (!user.authenticate(password)) return res.status(404).json({ success: false, message: 'Email and password do not match' });
     
-    const token = jwt.sign({_id:user._id},process.env.JWT_SECRET);
-    res.cookie("jwt", token, { expire: new Date(Date.now() + 1800000) });
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '30m' });
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      maxAge: 1800000,
+      secure: false, // true in production (HTTPS)
+      sameSite: 'Lax',
+    });
+    
     res.status(200).json({ success: true, message: 'Login successful', data: user });
 };
 
@@ -36,7 +42,17 @@ const signupUsers = async (req, res) => {
     }
 };
 
+const getUserData = async (req, res) => {
+  const { email } = req.body;
+  const user = await models.Users.findOne({ where: {email: email}});
+  if (!user) 
+    return res.status(500).json({ success: false, message: 'Unable to fetch information, please try again!' });
+
+  res.status(200).json({ success: true, message: 'User information available', data: user });
+}
+
 module.exports = {
     loginUsers,
     signupUsers,
+    getUserData,
 };
