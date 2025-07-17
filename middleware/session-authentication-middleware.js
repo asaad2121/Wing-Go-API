@@ -15,7 +15,7 @@ const authenticateToken = (req, res, next) => {
 
         if (expirationTime - currentTime < renewalThreshold) {
             const newToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '30m' });
-            res.cookie("jwt", newToken, {
+            res.cookie('jwt', newToken, {
                 httpOnly: true,
                 maxAge: 1800000,
                 secure: false, // true in production (HTTPS)
@@ -29,5 +29,5 @@ const authenticateToken = (req, res, next) => {
 };
 
 module.exports = {
-    authenticateToken
-}
+    authenticateToken,
+};
