@@ -1,10 +1,12 @@
 const express = require('express');
 const userRouter = require('./routes/users');
 const userProfileRouter = require('./routes/user-details');
+const hotelRouter = require('./routes/hotels');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const passport = require('passport');
+const cloudinary = require('cloudinary').v2;
 require('dotenv').config();
 require('./auth');
 
@@ -27,6 +29,7 @@ app.use(passport.initialize());
 // User routes (JWT-secured)
 app.use('/users', userRouter);
 app.use('/user-details', authenticateToken, userProfileRouter);
+app.use('/hotel', authenticateToken, hotelRouter);
 
 app.get('/protected-route', authenticateToken, (req, res) => {
     res.send('This is a protected route');
@@ -37,14 +40,15 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 
 app.get(
     '/auth/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: '/' }),
+    passport.authenticate('google', { session: false, failureRedirect: 'auth/error' }),
     (req, res) => {
         // req.user contains the Google profile.
         console.log(req?.user);
 
         const jwt = require('jsonwebtoken');
         const token = jwt.sign(
-            { googleId: req?.user?.id, email: req?.user?.emails[0]?.value },
+            // { googleId: req?.user?.id, email: req?.user?.emails[0]?.value },
+            { googleId: req?.user?.googleId, email: req?.user?.email },
             process.env.JWT_SECRET,
             {
                 expiresIn: '30m',
@@ -62,6 +66,19 @@ app.get(
     }
 );
 
-app.listen(2139, () => {
-    console.log('Server is running on port 2139');
+app.get('/auth/error', (req, res) => {
+    res.send('Google login failed. Check server logs.');
+});
+
+// Cloudinary Setup
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true, // Return "https" URLs by setting secure: true
+});
+
+const PORT = process.env.PORT || 2139;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
