@@ -2,6 +2,7 @@ const express = require('express');
 const userRouter = require('./routes/users');
 const userProfileRouter = require('./routes/user-details');
 const hotelRouter = require('./routes/hotels');
+const touristPlaceRouter = require('./routes/tourist-place');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -30,6 +31,7 @@ app.use(passport.initialize());
 app.use('/users', userRouter);
 app.use('/user-details', authenticateToken, userProfileRouter);
 app.use('/hotel', authenticateToken, hotelRouter);
+app.use('/tourist-place', authenticateToken, touristPlaceRouter);
 
 app.get('/protected-route', authenticateToken, (req, res) => {
     res.send('This is a protected route');
