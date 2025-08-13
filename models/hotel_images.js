@@ -28,6 +28,12 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.STRING(50),
                 allowNull: true,
             },
+            isActive: {
+                field: 'is_active',
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: true,
+            },
             createdAt: {
                 field: 'created_at',
                 type: DataTypes.DATE,

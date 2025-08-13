@@ -10,11 +10,14 @@ const getTouristPlaceData = async (req, res) => {
         include: [
             {
                 model: models.TouristPlaceImages,
+                where: { is_active: true },
+                required: false,
                 as: 'images',
             },
         ],
     });
-    if (!tourist_place) return res.status(401).json({ success: false, message: 'Tourist place not found. Try again later!' });
+    if (!tourist_place)
+        return res.status(401).json({ success: false, message: 'Tourist place not found. Try again later!' });
     res.status(200).json({ success: true, message: 'Tourist place data', data: tourist_place });
 };
 
@@ -35,13 +38,17 @@ const getTouristPlacesByCity = async (req, res) => {
             {
                 model: models.TouristPlaceImages,
                 as: 'images',
+                where: { is_active: true },
+                required: false,
                 limit: imagesLimit,
             },
         ],
     });
 
     if (!touristPlaces || touristPlaces.length === 0) {
-        return res.status(401).json({ success: false, message: 'Tourist places in this city not found. Try again later!' });
+        return res
+            .status(401)
+            .json({ success: false, message: 'Tourist places in this city not found. Try again later!' });
     }
 
     res.status(200).json({ success: true, message: 'Tourist Places data', data: touristPlaces });
