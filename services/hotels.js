@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 
 const getHotelData = async (req, res) => {
     // Single Hotel data
-    const { id } = req.body;
+    const id = parseInt(req.query.id);
     if (!id) return res.status(401).json({ success: false, message: 'Hotel ID not found. Try again later!' });
     const hotel = await models.Hotels.findOne({
         where: { id: id },
@@ -22,9 +22,8 @@ const getHotelData = async (req, res) => {
 
 const getTopHotelsData = async (req, res) => {
     // Top hotels - filtered by rating
-    const limit = Number(req.query.limit) ?? 5;
-    const imagesLimit = Number(req.query.imagesLimit) ?? 1;
-    console.log(limit, imagesLimit, req.query);
+    const limit = parseInt(req.query.limit) || 5;
+    const imagesLimit = parseInt(req.query.imagesLimit) || 1;
 
     const hotelsData = await models.Hotels.findAll({
         where: {
@@ -47,13 +46,16 @@ const getTopHotelsData = async (req, res) => {
 
 const getHotelsByCity = async (req, res) => {
     // Filter by rating
-    const cityID = req.body.city;
-    const limit = req.body.limit ?? 5;
-    const imagesLimit = req.body.imagesLimit ?? 1;
+    const cityId = parseInt(req.query.cityId, 10);
+    const limit = parseInt(req.query.limit, 10) || 5;
+    const imagesLimit = parseInt(req.query.imagesLimit, 10) || 1;
     try {
-        if (!cityID) return res.status(401).json({ success: false, message: 'Hotel city not found. Try again later!' });
+        if (!cityId) return res.status(401).json({ success: false, message: 'Hotel city not found. Try again later!' });
         const hotel = await models.Hotels.findAll({
-            where: { city: cityID },
+            where: {
+                rating: { [Op.between]: [3, 5] },
+                cityId: cityId,
+            },
             limit,
             include: [
                 {
@@ -62,6 +64,10 @@ const getHotelsByCity = async (req, res) => {
                     where: { is_active: true },
                     required: false,
                     limit: imagesLimit,
+                },
+                {
+                    model: models.City,
+                    as: 'city',
                 },
             ],
         });
@@ -75,8 +81,8 @@ const getHotelsByCity = async (req, res) => {
 };
 
 const getHotelsForTopCities = async (req, res) => {
-    const limit = req.body.limit ?? 5;
-    const imagesLimit = req.body.imagesLimit ?? 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const imagesLimit = parseInt(req.query.imagesLimit) || 1;
 
     try {
         const topCities = await models.City.findAll({
@@ -92,7 +98,7 @@ const getHotelsForTopCities = async (req, res) => {
             const hotels = await models.Hotels.findAll({
                 where: {
                     cityId: city.id,
-                    rating: { [Op.between]: [3.5, 5] },
+                    rating: { [Op.between]: [3, 5] },
                 },
                 limit,
                 include: [
@@ -119,9 +125,82 @@ const getHotelsForTopCities = async (req, res) => {
     }
 };
 
+const getFilteredHotels = async (req, res) => {
+    const cityIds = req.query.cityIds;
+    const limit = parseInt(req.query.limit) || 10;
+    const currentPageNo = parseInt(req.query.currentPageNo) || 1;
+    const imagesLimit = parseInt(req.query.imagesLimit) || 1;
+    const rating = req.query.rating || [3, 5];
+
+    try {
+        let whereClause = {
+            rating: { [Op.between]: rating },
+        };
+        let order = [];
+
+        if (Array.isArray(cityIds) && cityIds.length > 0) {
+            whereClause.cityId = { [Op.in]: cityIds.map((id) => parseInt(id, 10)) };
+        } else {
+            order.push(['name', 'ASC']);
+        }
+
+        const offset = (currentPageNo - 1) * limit;
+
+        const { count, rows } = await models.Hotels.findAndCountAll({
+            where: whereClause,
+            limit,
+            offset,
+            order,
+            include: [
+                {
+                    model: models.HotelImages,
+                    as: 'images',
+                    where: { is_active: true },
+                    required: false,
+                    limit: imagesLimit,
+                },
+                {
+                    model: models.City,
+                    as: 'city',
+                    attributes: ['id', 'name'],
+                },
+            ],
+        });
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No hotels found. Try again later!',
+            });
+        }
+
+        const totalPages = Math.ceil(count / limit);
+
+        res.status(200).json({
+            success: true,
+            message: cityIds?.length ? `Hotels for cities: ${cityIds.join(',')}` : 'All hotels in alphabetical order',
+            pagination: {
+                limit,
+                currentPageNo,
+                totalPages,
+                totalResults: count,
+            },
+            data: rows,
+        });
+    } catch (error) {
+        console.error('Error fetching filtered hotels:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message,
+        });
+    }
+};
+
 module.exports = {
     getHotelData,
     getTopHotelsData,
     getHotelsByCity,
     getHotelsForTopCities,
+    getFilteredHotels,
 };
