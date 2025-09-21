@@ -130,13 +130,26 @@ const getFilteredHotels = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const currentPageNo = parseInt(req.query.currentPageNo) || 1;
     const imagesLimit = parseInt(req.query.imagesLimit) || 1;
-    const rating = req.query.rating || [3, 5];
+    const rating = req.query.rating;
+    const priceRange = req.query.priceRange;
 
     try {
-        let whereClause = {
-            rating: { [Op.between]: rating },
-        };
+        let whereClause = {};
         let order = [];
+
+        if (rating) {
+            if (Array.isArray(rating) && rating.length === 2) {
+                whereClause.rating = { [Op.between]: rating.map((r) => parseFloat(r)) };
+            } else {
+                whereClause.rating = parseFloat(rating);
+            }
+        }
+
+        if (Array.isArray(priceRange) && priceRange.length === 2) {
+            whereClause.pricePerNight = {
+                [Op.between]: priceRange.map((p) => parseFloat(p)),
+            };
+        }
 
         if (Array.isArray(cityIds) && cityIds.length > 0) {
             whereClause.cityId = { [Op.in]: cityIds.map((id) => parseInt(id, 10)) };
