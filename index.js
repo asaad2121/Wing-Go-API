@@ -4,6 +4,7 @@ const userProfileRouter = require('./routes/user-details');
 const hotelRouter = require('./routes/hotels');
 const touristPlaceRouter = require('./routes/tourist-place');
 const cityRouter = require('./routes/city');
+const tripPlannerRouter = require('./routes/trip-planner');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -34,6 +35,7 @@ app.use('/user-details', authenticateToken, userProfileRouter);
 app.use('/hotel', authenticateToken, hotelRouter);
 app.use('/tourist-place', authenticateToken, touristPlaceRouter);
 app.use('/city', authenticateToken, cityRouter);
+app.use('/trip-planner', authenticateToken, tripPlannerRouter);
 
 app.get('/protected-route', authenticateToken, (req, res) => {
     res.send('This is a protected route');
