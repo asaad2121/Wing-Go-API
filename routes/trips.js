@@ -1,6 +1,6 @@
 const express = require('express');
 const { check, validationResult } = require('express-validator');
-const { planTouristTrip, tripHotelsSelect } = require('../services/trip-planner');
+const { planTouristTrip, tripHotelsSelect } = require('../services/trips');
 
 const router = express.Router();
 
