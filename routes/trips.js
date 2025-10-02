@@ -1,6 +1,6 @@
 const express = require('express');
 const { check, validationResult } = require('express-validator');
-const { planTouristTrip, tripHotelsSelect } = require('../services/trips');
+const { planTouristTrip, tripHotelsSelect, viewUserTrips, viewSingleUserTrip } = require('../services/trips');
 
 const router = express.Router();
 
@@ -52,5 +52,9 @@ router.post(
     },
     tripHotelsSelect
 );
+
+router.get('/viewUserTrips', viewUserTrips);
+
+router.get('/viewSingleUserTrip', viewSingleUserTrip);
 
 module.exports = router;

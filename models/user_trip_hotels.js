@@ -19,8 +19,9 @@ module.exports = (sequelize, DataTypes) => {
 
     UserTripHotels.init(
         {
-            trip_id: {
-                type: DataTypes.BIGINT,
+            tripId: {
+                field: 'trip_id',
+                type: DataTypes.BIGINT.UNSIGNED,
                 allowNull: false,
                 references: {
                     model: 'trips',
@@ -29,11 +30,13 @@ module.exports = (sequelize, DataTypes) => {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE',
             },
-            city_id: {
+            cityId: {
+                field: 'city_id',
                 type: DataTypes.MEDIUMINT.UNSIGNED,
                 allowNull: false,
             },
-            city_name: {
+            cityName: {
+                field: 'city_name',
                 type: DataTypes.STRING(255),
                 allowNull: false,
             },
@@ -45,12 +48,14 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.DECIMAL(10, 2),
                 allowNull: false,
             },
-            tourist_destination_ids: {
+            touristDestinationIds: {
+                field: 'tourist_destination_ids',
                 type: DataTypes.JSON,
                 allowNull: false,
             },
-            hotel_id: {
-                type: DataTypes.INTEGER,
+            hotelId: {
+                field: 'hotel_id',
+                type: DataTypes.INTEGER.UNSIGNED,
                 allowNull: false,
                 references: {
                     model: 'hotels',
@@ -59,12 +64,14 @@ module.exports = (sequelize, DataTypes) => {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE',
             },
-            created_at: {
+            createdAt: {
+                field: 'created_at',
                 type: DataTypes.DATE,
                 allowNull: false,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
             },
-            updated_at: {
+            updatedAt: {
+                field: 'updated_at',
                 type: DataTypes.DATE,
                 allowNull: false,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),

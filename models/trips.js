@@ -19,8 +19,9 @@ module.exports = (sequelize, DataTypes) => {
 
     Trips.init(
         {
-            user_id: {
-                type: DataTypes.BIGINT,
+            userId: {
+                field: 'user_id',
+                type: DataTypes.BIGINT.UNSIGNED,
                 allowNull: false,
                 references: {
                     model: 'users',
@@ -29,12 +30,14 @@ module.exports = (sequelize, DataTypes) => {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE',
             },
-            created_at: {
+            createdAt: {
+                field: 'created_at',
                 type: DataTypes.DATE,
                 allowNull: false,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
             },
-            updated_at: {
+            updatedAt: {
+                field: 'updated_at',
                 type: DataTypes.DATE,
                 allowNull: false,
                 defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),

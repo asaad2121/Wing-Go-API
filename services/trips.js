@@ -19,26 +19,20 @@ const planTouristTrip = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid trip data' });
     }
 
+    if (tripData.length > 4) {
+        return res.status(400).json({ success: false, message: 'Trip too long!' });
+    }
+
     try {
         const results = [];
-
         for (const segment of tripData) {
             const { cityId, cityName, days, budget, touristDestinationIds } = segment;
             const perDayBudget = budget / days;
 
             const hotels = await models.Hotels.findAll({
-                where: {
-                    cityId,
-                    pricePerNight: { [Op.lte]: perDayBudget },
-                },
+                where: { cityId, pricePerNight: { [Op.lte]: perDayBudget } },
                 include: [
-                    {
-                        model: models.HotelImages,
-                        as: 'images',
-                        where: { is_active: true },
-                        required: false,
-                        limit: 1,
-                    },
+                    { model: models.HotelImages, as: 'images', where: { is_active: true }, required: false, limit: 1 },
                 ],
                 order: [['rating', 'DESC']],
                 limit: 20,
@@ -50,7 +44,6 @@ const planTouristTrip = async (req, res) => {
                 const touristPlaces = await models.TouristPlace.findAll({
                     where: { id: { [Op.in]: touristDestinationIds } },
                 });
-
                 sortedHotels = sortedHotels.map((hotel) => {
                     const avgDistance =
                         Math.ceil(
@@ -68,41 +61,23 @@ const planTouristTrip = async (req, res) => {
                                 touristPlaces.length) *
                                 100
                         ) / 100;
-
                     return { ...hotel, avgDistance };
                 });
-
                 sortedHotels.sort((a, b) => a.avgDistance - b.avgDistance);
             }
 
-            results.push({
-                cityId,
-                cityName,
-                days,
-                budget,
-                perDayBudget,
-                hotels: sortedHotels,
-            });
+            results.push({ cityId, cityName, days, budget, perDayBudget, hotels: sortedHotels });
         }
 
-        return res.status(200).json({
-            success: true,
-            message: 'Trip plan generated successfully',
-            data: results,
-        });
+        return res.status(200).json({ success: true, message: 'Trip plan generated successfully', data: results });
     } catch (error) {
         console.error('Error planning trip:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message,
-        });
+        return res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
 const tripHotelsSelect = async (req, res) => {
     const { userId, tripData, selectedHotels } = req.body;
-
     if (tripData.length !== selectedHotels.length) {
         return res.status(400).json({
             success: false,
@@ -111,22 +86,20 @@ const tripHotelsSelect = async (req, res) => {
     }
 
     const t = await models.sequelize.transaction();
-
     try {
-        const trip = await models.Trips.create({ user_id: userId }, { transaction: t });
+        const trip = await models.Trips.create({ userId }, { transaction: t });
 
         const userTripHotelsPayload = tripData.map((segment, index) => ({
-            trip_id: trip.id,
-            city_id: segment.cityId,
-            city_name: segment.cityName,
+            tripId: trip.id,
+            cityId: segment.cityId,
+            cityName: segment.cityName,
             days: segment.days,
             budget: segment.budget,
-            tourist_destination_ids: segment.touristDestinationIds || [],
-            hotel_id: selectedHotels[index],
+            touristDestinationIds: segment.touristDestinationIds || [],
+            hotelId: selectedHotels[index],
         }));
 
         await models.UserTripHotels.bulkCreate(userTripHotelsPayload, { transaction: t });
-
         await t.commit();
 
         return res.status(201).json({
@@ -145,4 +118,106 @@ const tripHotelsSelect = async (req, res) => {
     }
 };
 
-module.exports = { planTouristTrip, tripHotelsSelect };
+const viewUserTrips = async (req, res) => {
+    try {
+        const userId = parseInt(req.query.id);
+
+        const trips = await models.Trips.findAll({
+            where: { userId },
+            order: [['createdAt', 'DESC']],
+            include: [{ model: models.UserTripHotels, as: 'tripHotels' }],
+        });
+
+        const formattedTrips = trips.map((trip) => ({
+            tripId: trip.id,
+            createdAt: trip.createdAt,
+            updatedAt: trip.updatedAt,
+            cities: trip.tripHotels.map((th) => ({
+                cityName: th.cityName,
+                days: th.days,
+                budget: th.budget,
+                touristDestinationIds: th.touristDestinationIds,
+            })),
+        }));
+
+        res.status(200).json({ success: true, data: formattedTrips });
+    } catch (err) {
+        console.error('Error fetching user trips:', err);
+        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+    }
+};
+
+const viewSingleUserTrip = async (req, res) => {
+    try {
+        const userId = parseInt(req.query.id);
+        const tripId = parseInt(req.query.tripId);
+
+        if (isNaN(tripId)) return res.status(400).json({ success: false, message: 'Invalid trip ID' });
+
+        const trip = await models.Trips.findOne({
+            where: { id: tripId, userId },
+            include: [
+                {
+                    model: models.UserTripHotels,
+                    as: 'tripHotels',
+                    include: [
+                        {
+                            model: models.Hotels,
+                            as: 'hotel',
+                            include: [
+                                {
+                                    model: models.HotelImages,
+                                    as: 'images',
+                                    where: { is_active: true },
+                                    required: false,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+
+        if (!trip) return res.status(404).json({ success: false, message: 'Trip not found' });
+        const allTouristPlaceIds = trip.tripHotels.flatMap((th) => th.touristDestinationIds || []);
+        let topLevelTouristPlaces = [];
+        if (allTouristPlaceIds.length > 0) {
+            topLevelTouristPlaces = await models.TouristPlace.findAll({
+                where: { id: allTouristPlaceIds },
+                include: [{ model: models.TouristPlaceImages, as: 'images', required: false }],
+            });
+        }
+
+        const formattedTrip = {
+            tripId: trip.id,
+            cities: trip.tripHotels.map((th) => ({
+                cityId: th.cityId,
+                cityName: th.cityName,
+                days: th.days,
+                budget: th.budget,
+                hotels: th.hotel
+                    ? {
+                          id: th.hotel.id,
+                          name: th.hotel.name,
+                          pricePerNight: th.hotel.pricePerNight,
+                          rating: th.hotel.rating,
+                          address: th.hotel.address,
+                          image: th.hotel.images[0]?.imagePublicId,
+                      }
+                    : null,
+            })),
+            touristPlaces: topLevelTouristPlaces.map((tp) => ({
+                id: tp.id,
+                name: tp.name,
+                image: tp.images[0]?.imagePublicId,
+            })),
+        };
+
+        res.status(200).json({ success: true, data: formattedTrip });
+    } catch (err) {
+        console.error('Error fetching single trip:', err);
+        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+    }
+};
+
+module.exports = { planTouristTrip, tripHotelsSelect, viewUserTrips, viewSingleUserTrip };
