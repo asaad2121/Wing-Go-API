@@ -8,12 +8,12 @@ const loginUsers = async (req, res) => {
     if (!user.authenticate(password))
         return res.status(404).json({ success: false, message: 'Email and password do not match' });
 
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '30m' });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30m' });
     res.cookie('jwt', token, {
         httpOnly: true,
-        maxAge: 1800000,
-        secure: false, // true in production (HTTPS)
-        sameSite: 'Lax',
+        maxAge: 30 * 60 * 1000,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.ENVIRONMENT === 'prod' ? 'None' : 'Lax',
     });
 
     res.status(200).json({ success: true, message: 'Login successful', data: user });
