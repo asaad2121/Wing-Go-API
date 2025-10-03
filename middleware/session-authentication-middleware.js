@@ -14,12 +14,12 @@ const authenticateToken = (req, res, next) => {
         const renewalThreshold = 5 * 60 * 1000; // 5 minutes
 
         if (expirationTime - currentTime < renewalThreshold) {
-            const newToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '30m' });
+            const newToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30m' });
             res.cookie('jwt', newToken, {
                 httpOnly: true,
                 maxAge: 30 * 60 * 1000,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.ENVIRONMENT === 'prod' ? 'None' : 'Lax',
+                sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
             });
         }
 
