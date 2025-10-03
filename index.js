@@ -22,7 +22,8 @@ app.use(cookieParser());
 
 app.use(
     cors({
-        origin: process.env.REACT_APP,
+        origin: (origin, cb) =>
+            !origin || origin === process.env.REACT_APP ? cb(null, true) : cb(new Error('Not allowed by CORS')),
         credentials: true,
     })
 );
