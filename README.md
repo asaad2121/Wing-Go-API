@@ -2,6 +2,8 @@
 
 This API serves as the backend for the WingGo Travel Guide application. It provides endpoints for user authentication, hotels, tourist destinations, trip planning, and city data.
 
+Preferred Node Version: v20.18.3
+
 ---
 
 ## Updating the Models (e.g., "Users")
