@@ -66,29 +66,29 @@ The server will start on the port specified in your `.env` file (default 2139).
 
 ## API Endpoints Overview
 
-- **User Authentication:**  
-- `POST /users/login` - Login user, returns JWT in HttpOnly cookie  
-- `POST /users/signup` - Register new user  
-- `GET /auth/google` - Google OAuth login  
-- `GET /auth/google/callback` - Google OAuth callback  
+- **User Authentication:**
+- `POST /users/login` - Login user, returns JWT in HttpOnly cookie
+- `POST /users/signup` - Register new user
+- `GET /auth/google` - Google OAuth login
+- `GET /auth/google/callback` - Google OAuth callback
 
-- **Hotels API:**  
-- `GET /hotel/getTopHotels`  
-- `GET /hotel/getHotelsByCity/:cityId`  
-- `GET /hotel/:hotelId`  
+- **Hotels API:**
+- `GET /hotel/getTopHotels`
+- `GET /hotel/getHotelsByCity/:cityId`
+- `GET /hotel/:hotelId`
 
-- **Tourist Places API:**  
-- `GET /tourist-place/getTouristPlacesForTopCities`  
-- `GET /tourist-place/:id`  
+- **Tourist Places API:**
+- `GET /tourist-place/getTouristPlacesForTopCities`
+- `GET /tourist-place/:id`
 
-- **Trip Planner API:**  
-- `POST /trips/plan`  
+- **Trip Planner API:**
+- `POST /trips/plan`
 
-- **City API:**  
-- `GET /city/getAllCities`  
+- **City API:**
+- `GET /city/getAllCities`
 
-- **Protected Example Route:**  
-- `GET /protected-route`  
+- **Protected Example Route:**
+- `GET /protected-route`
 
 All endpoints that require user-specific access are secured using JWT tokens stored in HTTP-only cookies.
 
@@ -96,6 +96,6 @@ All endpoints that require user-specific access are secured using JWT tokens sto
 
 ## Notes
 
-- Always test migrations on a development database before running in production.  
-- Use Postman or similar tools to verify endpoints and authentication flows.  
+- Always test migrations on a development database before running in production.
+- Use Postman or similar tools to verify endpoints and authentication flows.
 - For any changes to images, ensure Cloudinary credentials are correct and images are uploaded properly.
