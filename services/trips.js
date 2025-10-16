@@ -1,7 +1,7 @@
 const models = require('../models');
 const { Op } = require('sequelize');
 
-// Haversine formula (distance in km)
+// Haversine formula (distance in km) to calculate distance between two geo coordinates
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
     const toRad = (x) => (x * Math.PI) / 180;
     const R = 6371; // km
@@ -12,9 +12,11 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
     return R * c;
 };
 
+// Plans a tourist trip by selecting suitable hotels per city segment based on budget and proximity to tourist destinations
 const planTouristTrip = async (req, res) => {
     const { tripData } = req.body;
 
+    // Validate input trip data array and length constraint
     if (!Array.isArray(tripData) || tripData.length === 0) {
         return res.status(400).json({ success: false, message: 'Invalid trip data' });
     }
@@ -25,10 +27,12 @@ const planTouristTrip = async (req, res) => {
 
     try {
         const results = [];
+        // Process each trip segment (city)
         for (const segment of tripData) {
             const { cityId, cityName, days, budget, touristDestinationIds } = segment;
             const perDayBudget = budget / days;
 
+            // Fetch hotels within budget sorted by rating, including one active image if available
             const hotels = await models.Hotels.findAll({
                 where: { cityId, pricePerNight: { [Op.lte]: perDayBudget } },
                 include: [
@@ -40,6 +44,7 @@ const planTouristTrip = async (req, res) => {
 
             let sortedHotels = hotels.map((h) => h.toJSON());
 
+            // If tourist destinations provided, calculate average distance from each hotel to these places and sort accordingly
             if (touristDestinationIds?.length > 0) {
                 const touristPlaces = await models.TouristPlace.findAll({
                     where: { id: { [Op.in]: touristDestinationIds } },
@@ -69,6 +74,7 @@ const planTouristTrip = async (req, res) => {
             results.push({ cityId, cityName, days, budget, perDayBudget, hotels: sortedHotels });
         }
 
+        // Return planned trip data with hotel options per city
         return res.status(200).json({ success: true, message: 'Trip plan generated successfully', data: results });
     } catch (error) {
         console.error('Error planning trip:', error);
@@ -76,8 +82,11 @@ const planTouristTrip = async (req, res) => {
     }
 };
 
+// Saves user's selected hotels for each trip segment and creates a trip record in the database
 const tripHotelsSelect = async (req, res) => {
     const { userId, tripData, selectedHotels } = req.body;
+
+    // Validate that trip segments and selected hotels arrays match in length
     if (tripData.length !== selectedHotels.length) {
         return res.status(400).json({
             success: false,
@@ -87,8 +96,10 @@ const tripHotelsSelect = async (req, res) => {
 
     const t = await models.sequelize.transaction();
     try {
+        // Create a new trip record associated with the user
         const trip = await models.Trips.create({ userId }, { transaction: t });
 
+        // Prepare payload linking each city segment with the selected hotel
         const userTripHotelsPayload = tripData.map((segment, index) => ({
             tripId: trip.id,
             cityId: segment.cityId,
@@ -99,6 +110,7 @@ const tripHotelsSelect = async (req, res) => {
             hotelId: selectedHotels[index],
         }));
 
+        // Bulk insert user trip hotel selections within the transaction
         await models.UserTripHotels.bulkCreate(userTripHotelsPayload, { transaction: t });
         await t.commit();
 
@@ -118,16 +130,19 @@ const tripHotelsSelect = async (req, res) => {
     }
 };
 
+// Retrieves all trips for a user along with summary of cities and trip details
 const viewUserTrips = async (req, res) => {
     try {
         const userId = parseInt(req.query.id);
 
+        // Fetch trips for user with associated trip hotel data
         const trips = await models.Trips.findAll({
             where: { userId },
             order: [['createdAt', 'DESC']],
             include: [{ model: models.UserTripHotels, as: 'tripHotels' }],
         });
 
+        // Format trips to include city info and trip metadata
         const formattedTrips = trips.map((trip) => ({
             tripId: trip.id,
             createdAt: trip.createdAt,
@@ -147,6 +162,7 @@ const viewUserTrips = async (req, res) => {
     }
 };
 
+// Retrieves detailed info for a single user trip, including selected hotels and tourist places
 const viewSingleUserTrip = async (req, res) => {
     try {
         const userId = parseInt(req.query.id);
@@ -154,6 +170,7 @@ const viewSingleUserTrip = async (req, res) => {
 
         if (isNaN(tripId)) return res.status(400).json({ success: false, message: 'Invalid trip ID' });
 
+        // Fetch trip with associated hotels and hotel images
         const trip = await models.Trips.findOne({
             where: { id: tripId, userId },
             include: [
@@ -179,15 +196,19 @@ const viewSingleUserTrip = async (req, res) => {
         });
 
         if (!trip) return res.status(404).json({ success: false, message: 'Trip not found' });
+
+        // Aggregate all tourist place IDs from trip segments
         const allTouristPlaceIds = trip.tripHotels.flatMap((th) => th.touristDestinationIds || []);
         let topLevelTouristPlaces = [];
         if (allTouristPlaceIds.length > 0) {
+            // Fetch detailed tourist place info with images
             topLevelTouristPlaces = await models.TouristPlace.findAll({
                 where: { id: allTouristPlaceIds },
                 include: [{ model: models.TouristPlaceImages, as: 'images', required: false }],
             });
         }
 
+        // Format response with trip, hotels, and tourist place details
         const formattedTrip = {
             tripId: trip.id,
             cities: trip.tripHotels.map((th) => ({

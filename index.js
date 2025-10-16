@@ -1,3 +1,5 @@
+// Imports and environment setup
+// Import core modules, routers, and middleware
 const express = require('express');
 const userRouter = require('./routes/users');
 const userProfileRouter = require('./routes/user-details');
@@ -10,16 +12,19 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const passport = require('passport');
 const cloudinary = require('cloudinary').v2;
-require('dotenv').config();
-require('./auth');
+require('dotenv').config(); // Load environment variables
+require('./auth'); // Initialize Passport Google OAuth strategies
 
 const { authenticateToken } = require('./middleware/session-authentication-middleware');
 
 const app = express();
 
-app.use(bodyParser.json());
-app.use(cookieParser());
+// Middleware setup
+app.use(bodyParser.json()); // Parse JSON request bodies
+app.use(cookieParser()); // Parse cookies from requests
 
+// CORS configuration
+// Allow requests from the specified frontend origin and send credentials (cookies)
 app.use(
     cors({
         origin: (origin, cb) =>
@@ -28,9 +33,10 @@ app.use(
     })
 );
 
-app.use(passport.initialize());
+app.use(passport.initialize()); // Initialize Passport for authentication
 
-// User routes (JWT-secured)
+// Route registration
+// JWT-secured user and resource routes
 app.use('/users', userRouter);
 app.use('/user-details', authenticateToken, userProfileRouter);
 app.use('/hotel', authenticateToken, hotelRouter);
@@ -38,18 +44,20 @@ app.use('/tourist-place', authenticateToken, touristPlaceRouter);
 app.use('/city', authenticateToken, cityRouter);
 app.use('/trips', authenticateToken, tripsRouter);
 
+// Example of a protected route
 app.get('/protected-route', authenticateToken, (req, res) => {
     res.send('This is a protected route');
 });
 
-// Google OAuth Routes
+// Google OAuth authentication routes
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
+// Google OAuth callback route
 app.get(
     '/auth/google/callback',
     passport.authenticate('google', { session: false, failureRedirect: 'auth/error' }),
     (req, res) => {
-        // req.user contains the Google profile.
+        // On successful Google OAuth, issue a JWT and set it as httpOnly cookie
         console.log(req?.user);
 
         const jwt = require('jsonwebtoken');
@@ -65,7 +73,7 @@ app.get(
         res.cookie('jwt', token, {
             httpOnly: true,
             maxAge: 1800000,
-            secure: false, // true if using HTTPS (production)
+            secure: false, // Set to true if using HTTPS (production)
             sameSite: 'Lax',
         });
 
@@ -73,11 +81,13 @@ app.get(
     }
 );
 
+// Google OAuth failure route
 app.get('/auth/error', (req, res) => {
     res.send('Google login failed. Check server logs.');
 });
 
 // Cloudinary Setup
+// Configure Cloudinary for image uploads
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -85,6 +95,7 @@ cloudinary.config({
     secure: true, // Return "https" URLs by setting secure: true
 });
 
+// Start the server
 const PORT = process.env.PORT || 2139;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
